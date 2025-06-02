@@ -1,5 +1,4 @@
 import logging
-import asyncio
 import aiohttp
 import json
 from typing import Dict, List, Optional, Any, Union
@@ -8,9 +7,6 @@ from pydantic import Field
 from urllib.parse import urlencode, quote
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-mcp = FastMCP("healthcare")
 
 # Data.Healthcare.gov API base URL
 BASE_URL = "https://data.healthcare.gov/api/1"
@@ -28,7 +24,7 @@ HEALTHCARE_CATEGORIES = {
 }
 
 
-@mcp.tool()
+
 async def get_all_schemas() -> Dict[str, Any]:
     """Get list of all schemas available in the metastore"""
     
@@ -58,7 +54,6 @@ async def get_all_schemas() -> Dict[str, Any]:
             }
 
 
-@mcp.tool()
 async def get_schema_details(
     schema_id: str = Field(description="Schema ID (e.g., 'dataset', 'distribution')")
 ) -> Dict[str, Any]:
@@ -90,7 +85,6 @@ async def get_schema_details(
             }
 
 
-@mcp.tool()
 async def get_schema_items(
     schema_id: str = Field(description="Schema ID (e.g., 'dataset')"),
     limit: Optional[int] = Field(default=None, description="Maximum number of items to return"),
@@ -132,7 +126,6 @@ async def get_schema_items(
             }
 
 
-@mcp.tool()
 async def get_dataset(
     identifier: str = Field(description="Dataset identifier/ID")
 ) -> Dict[str, Any]:
@@ -164,7 +157,6 @@ async def get_dataset(
             }
 
 
-@mcp.tool()
 async def search_catalog(
     query: Optional[str] = Field(default=None, description="Search query text"),
     facets: Optional[List[str]] = Field(default=None, description="Facets to filter by"),
@@ -213,7 +205,6 @@ async def search_catalog(
             }
 
 
-@mcp.tool()
 async def get_search_facets() -> Dict[str, Any]:
     """Retrieve search facet information for filtering"""
     
@@ -242,7 +233,6 @@ async def get_search_facets() -> Dict[str, Any]:
             }
 
 
-@mcp.tool()
 async def query_datastore(
     distribution_id: Optional[str] = Field(default=None, description="Distribution ID to query"),
     dataset_id: Optional[str] = Field(default=None, description="Dataset ID to query"),
@@ -312,7 +302,6 @@ async def query_datastore(
             }
 
 
-@mcp.tool()
 async def sql_query_datastore(
     query: str = Field(description="SQL query to execute"),
     limit: int = Field(default=100, description="Maximum number of records to return")
@@ -350,7 +339,6 @@ async def sql_query_datastore(
             }
 
 
-@mcp.tool()
 async def get_datastore_import_stats(
     identifier: str = Field(description="Import identifier")
 ) -> Dict[str, Any]:
@@ -382,7 +370,6 @@ async def get_datastore_import_stats(
             }
 
 
-@mcp.tool()
 async def search_healthcare_topics(
     topic: str = Field(description="Healthcare topic to search for (e.g., 'marketplace', 'quality', 'costs')")
 ) -> Dict[str, Any]:
@@ -407,7 +394,6 @@ async def search_healthcare_topics(
     return await search_catalog(query=query, limit=10)
 
 
-@mcp.tool()
 async def get_healthcare_categories() -> Dict[str, Any]:
     """Get list of common healthcare data categories"""
     return {
@@ -423,7 +409,6 @@ async def get_healthcare_categories() -> Dict[str, Any]:
     }
 
 
-@mcp.tool()
 async def test_healthcare_api() -> Dict[str, Any]:
     """Test connectivity to the Data.Healthcare.gov API"""
     
@@ -486,7 +471,6 @@ async def test_healthcare_api() -> Dict[str, Any]:
     }
 
 
-@mcp.tool()
 async def get_api_documentation() -> Dict[str, Any]:
     """Get comprehensive API documentation and endpoint information"""
     return {
@@ -520,11 +504,18 @@ async def get_api_documentation() -> Dict[str, Any]:
     }
 
 
-if __name__ == "__main__":
-    asyncio.run(
-        mcp.run_sse_async(
-            host="0.0.0.0",
-            port=8888,  # Different port from other servers
-            log_level="debug"
-        )
-    )
+def register_healthcare_gov_tools(mcp: FastMCP) -> None:
+    """Register all Healthcare.gov tools with the MCP server."""
+    mcp.tool()(get_all_schemas)
+    mcp.tool()(get_schema_details)
+    mcp.tool()(get_schema_items)
+    mcp.tool()(get_dataset)
+    mcp.tool()(search_catalog)
+    mcp.tool()(get_search_facets)
+    mcp.tool()(query_datastore)
+    mcp.tool()(sql_query_datastore)
+    mcp.tool()(get_datastore_import_stats)
+    mcp.tool()(search_healthcare_topics)
+    mcp.tool()(get_healthcare_categories)
+    mcp.tool()(test_healthcare_api)
+    mcp.tool()(get_api_documentation)

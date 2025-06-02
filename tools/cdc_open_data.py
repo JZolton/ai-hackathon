@@ -1,5 +1,4 @@
 import logging
-import asyncio
 import aiohttp
 import json
 import xml.etree.ElementTree as ET
@@ -9,9 +8,6 @@ from pydantic import Field
 from urllib.parse import urlencode, quote
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-mcp = FastMCP("opencdc")
 
 # CDC API endpoints
 ENDPOINTS = {
@@ -49,7 +45,7 @@ SYNDICATION_TOPICS = {
 }
 
 
-@mcp.tool()
+
 async def search_open_data(
     dataset_id: Optional[str] = Field(default=None, description="Specific dataset ID (e.g., '9mfq-cb36' for COVID cases)"),
     query: Optional[str] = Field(default=None, description="Search query text"),
@@ -122,7 +118,6 @@ async def search_open_data(
             }
 
 
-@mcp.tool()
 async def get_common_datasets() -> Dict[str, Any]:
     """Get list of commonly used CDC datasets with their IDs"""
     return {
@@ -139,7 +134,6 @@ async def get_common_datasets() -> Dict[str, Any]:
     }
 
 
-@mcp.tool()
 async def search_vocabularies(
     search_term: str = Field(description="Term to search for in vocabularies"),
     vocabulary_oid: Optional[str] = Field(default=None, description="Specific vocabulary OID to search within"),
@@ -214,7 +208,6 @@ async def search_vocabularies(
             }
 
 
-@mcp.tool()
 async def get_syndicated_content(
     topic_id: Optional[int] = Field(default=None, description="Topic ID (1-8, see get_syndication_topics)"),
     media_type: str = Field(default="Html", description="Media type: Html, Json, Xml"),
@@ -264,7 +257,6 @@ async def get_syndicated_content(
             }
 
 
-@mcp.tool()
 async def get_syndication_topics() -> Dict[str, Any]:
     """Get available content syndication topics"""
     return {
@@ -280,7 +272,6 @@ async def get_syndication_topics() -> Dict[str, Any]:
     }
 
 
-@mcp.tool()
 async def query_tracking_network(
     measure_id: str = Field(description="Measure ID (e.g., '296' for air quality)"),
     temporal_type: str = Field(default="annual", description="Temporal type: annual, monthly, daily"),
@@ -332,7 +323,6 @@ async def query_tracking_network(
             }
 
 
-@mcp.tool()
 async def get_tracking_measures() -> Dict[str, Any]:
     """Get available measures from CDC Environmental Public Health Tracking Network"""
     
@@ -360,7 +350,6 @@ async def get_tracking_measures() -> Dict[str, Any]:
             }
 
 
-@mcp.tool()
 async def search_covid_data(
     state: Optional[str] = Field(default=None, description="State name or abbreviation"),
     date_range: Optional[str] = Field(default=None, description="Date range in format 'YYYY-MM-DD/YYYY-MM-DD'"),
@@ -422,7 +411,6 @@ async def search_covid_data(
             }
 
 
-@mcp.tool()
 async def test_api_endpoints() -> Dict[str, Any]:
     """Test connectivity to all CDC API endpoints"""
     
@@ -500,7 +488,6 @@ async def test_api_endpoints() -> Dict[str, Any]:
     }
 
 
-@mcp.tool()
 async def get_api_documentation() -> Dict[str, Any]:
     """Get documentation links and information for all CDC APIs"""
     return {
@@ -554,11 +541,15 @@ async def get_api_documentation() -> Dict[str, Any]:
     }
 
 
-if __name__ == "__main__":
-    asyncio.run(
-        mcp.run_sse_async(
-            host="0.0.0.0",
-            port=8888,  # Different port from CDC WONDER server
-            log_level="debug"
-        )
-    )
+def register_cdc_open_data_tools(mcp: FastMCP) -> None:
+    """Register all CDC Open Data tools with the MCP server."""
+    mcp.tool()(search_open_data)
+    mcp.tool()(get_common_datasets)
+    mcp.tool()(search_vocabularies)
+    mcp.tool()(get_syndicated_content)
+    mcp.tool()(get_syndication_topics)
+    mcp.tool()(query_tracking_network)
+    mcp.tool()(get_tracking_measures)
+    mcp.tool()(search_covid_data)
+    mcp.tool()(test_api_endpoints)
+    mcp.tool()(get_api_documentation)

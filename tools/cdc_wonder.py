@@ -1,5 +1,4 @@
 import logging
-import asyncio
 import aiohttp
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional, Any
@@ -8,9 +7,6 @@ from pydantic import Field
 import json
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-mcp = FastMCP("cdcwonder")
 
 # CDC WONDER API base URL
 BASE_URL = "https://wonder.cdc.gov/controller/datarequest"
@@ -147,7 +143,7 @@ def parse_response(xml_response: str) -> Dict[str, Any]:
         return {"error": f"Failed to parse XML response: {str(e)}"}
 
 
-@mcp.tool()
+
 async def search_mortality_by_cause(
     cause_codes: List[str] = Field(description="ICD-10 codes for cause of death (e.g., ['C00-D48'] for cancer)"),
     years: List[int] = Field(description="Years to query (e.g., [2009, 2010, 2011])"),
@@ -232,7 +228,6 @@ async def search_mortality_by_cause(
             return {"error": f"Request failed: {str(e)}"}
 
 
-@mcp.tool()
 async def search_mortality_simple(
     cause_code: str = Field(description="Single ICD-10 code for cause of death (e.g., 'C00-D48' for cancer, '*All*' for all causes)"),
     year: int = Field(description="Single year to query (e.g., 2013). Must be between 1999-2013."),
@@ -329,7 +324,6 @@ async def search_mortality_simple(
         }
 
 
-@mcp.tool()
 async def search_injury_deaths(
     age_groups: List[int] = Field(description="Single year ages to include (e.g., [0, 1, 2, ..., 17] for under 18)"),
     years: Optional[List[int]] = Field(default=None, description="Years to query (defaults to all available)"),
@@ -386,7 +380,6 @@ async def search_injury_deaths(
             return {"error": f"Request failed: {str(e)}"}
 
 
-@mcp.tool()
 async def test_cdc_wonder_api() -> Dict[str, Any]:
     """Test the CDC WONDER API with a simple request"""
     
@@ -473,7 +466,6 @@ async def test_cdc_wonder_api() -> Dict[str, Any]:
             }
 
 
-@mcp.tool()
 async def get_available_databases() -> Dict[str, Any]:
     """Get list of available CDC WONDER databases and their IDs"""
     return {
@@ -503,7 +495,6 @@ def get_database_description(db_name: str) -> str:
     return descriptions.get(db_name, "CDC WONDER database")
 
 
-@mcp.tool()
 async def search_cdc_wonder_custom(
     database: str = Field(description="Database name from get_available_databases (e.g., 'mortality_detailed')"),
     group_by_codes: List[str] = Field(description="Parameter codes to group by (e.g., ['D76.V1-level1', 'D76.V8'])"),
@@ -557,11 +548,11 @@ async def search_cdc_wonder_custom(
 
 
 
-if __name__ == "__main__":
-    asyncio.run(
-        mcp.run_sse_async(
-            host="0.0.0.0",
-            port=8888, 
-            log_level="debug"
-        )
-    )
+def register_cdc_wonder_tools(mcp: FastMCP) -> None:
+    """Register all CDC WONDER tools with the MCP server."""
+    mcp.tool()(search_mortality_by_cause)
+    mcp.tool()(search_mortality_simple)
+    mcp.tool()(search_injury_deaths)
+    mcp.tool()(test_cdc_wonder_api)
+    mcp.tool()(get_available_databases)
+    mcp.tool()(search_cdc_wonder_custom)

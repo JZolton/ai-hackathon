@@ -1,5 +1,4 @@
 import logging
-import asyncio
 import aiohttp
 import json
 from typing import Dict, List, Optional, Any, Union
@@ -8,9 +7,6 @@ from pydantic import Field
 from urllib.parse import urlencode
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-mcp = FastMCP("epht")
 
 # CDC Environmental Public Health Tracking Network API base URL
 BASE_URL = "https://ephtracking.cdc.gov/apigateway/api/v1"
@@ -82,7 +78,7 @@ TEMPORAL_TYPES = {
 # get_available_measures removed - API endpoint disabled
 
 
-@mcp.tool()
+
 async def get_measure_categories() -> Dict[str, Any]:
     """Get predefined measure categories with common environmental health indicators"""
     return {
@@ -94,7 +90,6 @@ async def get_measure_categories() -> Dict[str, Any]:
     }
 
 
-@mcp.tool()
 async def query_environmental_data(
     measure_id: str = Field(description="Measure ID (e.g., '296' for PM2.5 annual)"),
     geographic_type: str = Field(default="state", description="Geographic level: state, county, city, tract, zip"),
@@ -156,7 +151,6 @@ async def query_environmental_data(
             }
 
 
-@mcp.tool()
 async def get_air_quality_data(
     pollutant: str = Field(default="pm25", description="Pollutant type: pm25, ozone, air_toxics_cancer, air_toxics_respiratory"),
     geographic_level: str = Field(default="county", description="Geographic level: state, county, city"),
@@ -205,7 +199,6 @@ async def get_air_quality_data(
     )
 
 
-@mcp.tool()
 async def get_health_outcomes_by_environment(
     health_outcome: str = Field(description="Health outcome: asthma, heart_disease, cancer, birth_defects"),
     environmental_factor: str = Field(description="Environmental factor: air_quality, water_quality, climate"),
@@ -283,7 +276,6 @@ async def get_health_outcomes_by_environment(
     }
 
 
-@mcp.tool()
 async def get_community_health_profile(
     state: str = Field(description="State abbreviation (e.g., 'CA')"),
     county: Optional[str] = Field(default=None, description="County FIPS code (optional)"),
@@ -374,7 +366,6 @@ async def get_community_health_profile(
     }
 
 
-@mcp.tool()
 async def search_measures_by_topic(
     topic: str = Field(description="Topic to search for (e.g., 'asthma', 'air pollution', 'water')")
 ) -> Dict[str, Any]:
@@ -410,7 +401,6 @@ async def search_measures_by_topic(
 # get_temporal_coverage removed - API endpoint returns 400 Bad Request
 
 
-@mcp.tool()
 async def test_epht_api() -> Dict[str, Any]:
     """Test connectivity and basic functionality of the EPHT API"""
     
@@ -487,7 +477,6 @@ async def test_epht_api() -> Dict[str, Any]:
     }
 
 
-@mcp.tool()
 async def get_api_documentation() -> Dict[str, Any]:
     """Get comprehensive documentation for the EPHT API"""
     return {
@@ -535,11 +524,13 @@ async def get_api_documentation() -> Dict[str, Any]:
     }
 
 
-if __name__ == "__main__":
-    asyncio.run(
-        mcp.run_sse_async(
-            host="0.0.0.0",
-            port=8888,  # Unique port for EPHT server
-            log_level="debug"
-        )
-    )
+def register_cdc_epht_tools(mcp: FastMCP) -> None:
+    """Register all CDC EPHT tools with the MCP server."""
+    mcp.tool()(get_measure_categories)
+    mcp.tool()(query_environmental_data)
+    mcp.tool()(get_air_quality_data)
+    mcp.tool()(get_health_outcomes_by_environment)
+    mcp.tool()(get_community_health_profile)
+    mcp.tool()(search_measures_by_topic)
+    mcp.tool()(test_epht_api)
+    mcp.tool()(get_api_documentation)
