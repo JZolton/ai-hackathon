@@ -1,0 +1,11 @@
+[project]
+name = "hackathon"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "aiohttp>=3.12.7",
+    "fastmcp>=2.5.2",
+    "pydantic>=2.11.5",
+]
