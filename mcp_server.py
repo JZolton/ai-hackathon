@@ -24,17 +24,17 @@ mcp = FastMCP("CDC Health Data Server", host=MCP_APP_HOST, port=MCP_APP_PORT)
 # Register all tool modules
 def register_all_tools():
     """Register all available tools with the MCP server."""
-    logger.info("Registering CDC WONDER tools...")
-    register_cdc_wonder_tools(mcp)
+    #logger.info("Registering CDC WONDER tools...")
+    #register_cdc_wonder_tools(mcp)
     
     logger.info("Registering CDC EPHT tools...")
     register_cdc_epht_tools(mcp)
     
-    logger.info("Registering CDC Open Data tools...")
-    register_cdc_open_data_tools(mcp)
+    #logger.info("Registering CDC Open Data tools...")
+    #register_cdc_open_data_tools(mcp)
     
-    logger.info("Registering Healthcare.gov tools...")
-    register_healthcare_gov_tools(mcp)
+    #logger.info("Registering Healthcare.gov tools...")
+    #register_healthcare_gov_tools(mcp)
     
     logger.info("All tools registered successfully!")
 

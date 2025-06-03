@@ -99,56 +99,25 @@ async def query_environmental_data(
     county_filter: Optional[str] = Field(default=None, description="County FIPS code"),
     stratification: Optional[str] = Field(default=None, description="Stratification variable (e.g., 'age', 'race', 'gender')")
 ) -> Dict[str, Any]:
-    """Query environmental health data from EPHT"""
+    """Query environmental health data from EPHT - CURRENTLY UNAVAILABLE"""
     
-    url = f"{BASE_URL}/getCoreHolder"
-    params = {
-        "measureId": measure_id,
-        "geographicTypeId": geographic_type,
-        "temporalTypeId": temporal_type
+    return {
+        "status": "error",
+        "error": "CDC EPHT API is currently unavailable",
+        "details": "All EPHT API endpoints are returning 400 Bad Request or 410 Gone errors",
+        "alternative": "Consider using CDC Open Data API for environmental health data",
+        "query_attempted": {
+            "measure_id": measure_id,
+            "geographic_type": geographic_type,
+            "temporal_type": temporal_type,
+            "year_filter": year_filter,
+            "state_filter": state_filter,
+            "county_filter": county_filter,
+            "stratification": stratification
+        },
+        "last_tested": "2025-06-03",
+        "api_status": "All endpoints non-functional"
     }
-    
-    # Add optional filters
-    if year_filter:
-        params["yearFilter"] = year_filter
-    if state_filter:
-        params["stateFilter"] = state_filter
-    if county_filter:
-        params["countyFilter"] = county_filter
-    if stratification:
-        params["stratificationLevel1"] = stratification
-    
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return {
-                        "status": "success",
-                        "data": data,
-                        "record_count": len(data) if isinstance(data, list) else None,
-                        "query_info": {
-                            "measure_id": measure_id,
-                            "geographic_type": geographic_type,
-                            "temporal_type": temporal_type,
-                            "year_filter": year_filter,
-                            "state_filter": state_filter,
-                            "county_filter": county_filter,
-                            "stratification": stratification
-                        }
-                    }
-                else:
-                    error_text = await response.text()
-                    return {
-                        "status": "error",
-                        "error": f"API request failed with status {response.status}",
-                        "details": error_text[:500]
-                    }
-        except Exception as e:
-            return {
-                "status": "error",
-                "error": f"Request failed: {str(e)}"
-            }
 
 
 async def get_air_quality_data(
@@ -525,12 +494,17 @@ async def get_api_documentation() -> Dict[str, Any]:
 
 
 def register_cdc_epht_tools(mcp: FastMCP) -> None:
-    """Register all CDC EPHT tools with the MCP server."""
-    mcp.tool()(get_measure_categories)
-    mcp.tool()(query_environmental_data)
-    mcp.tool()(get_air_quality_data)
-    mcp.tool()(get_health_outcomes_by_environment)
-    mcp.tool()(get_community_health_profile)
-    mcp.tool()(search_measures_by_topic)
-    mcp.tool()(test_epht_api)
-    mcp.tool()(get_api_documentation)
+    """Register only working CDC EPHT tools with the MCP server."""
+    
+    # Working tools (no external API calls)
+    mcp.tool()(get_measure_categories)  # Static data - works
+    mcp.tool()(search_measures_by_topic)  # Static search - works
+    mcp.tool()(get_api_documentation)  # Static documentation - works
+    mcp.tool()(test_epht_api)  # API test tool - works (shows API status)
+    
+    # Disabled tools (all make API calls to broken endpoints)
+    # These return informative error messages instead of timing out
+    mcp.tool()(query_environmental_data)  # Returns API unavailable message
+    mcp.tool()(get_air_quality_data)  # Calls query_environmental_data
+    mcp.tool()(get_health_outcomes_by_environment)  # Calls query_environmental_data
+    mcp.tool()(get_community_health_profile)  # Calls query_environmental_data
