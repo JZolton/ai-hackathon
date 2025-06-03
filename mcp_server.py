@@ -28,16 +28,16 @@ def register_all_tools():
     # Not current enough
     #register_cdc_wonder_tools(mcp)
     
-    # logger.info("Registering CDC EPHT tools...")
-    # register_cdc_epht_tools(mcp)
+    logger.info("Registering CDC EPHT tools...")
+    register_cdc_epht_tools(mcp)
     
-    # logger.info("Registering CDC Open Data tools...")
-    ## good data
-    #register_cdc_open_data_tools(mcp)
+    logger.info("Registering CDC Open Data tools...")
+    #good data
+    register_cdc_open_data_tools(mcp)
     
-    # logger.info("Registering Healthcare.gov tools...")
-    # Good data
-    #register_healthcare_gov_tools(mcp)
+    logger.info("Registering Healthcare.gov tools...")
+    #good data
+    register_healthcare_gov_tools(mcp)
     
     logger.info("All tools registered successfully!")
 
