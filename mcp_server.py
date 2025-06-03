@@ -8,7 +8,7 @@ from typing import Dict, Any
 from tools.cdc_wonder import register_cdc_wonder_tools
 from tools.cdc_epht import register_cdc_epht_tools
 from tools.cdc_open_data import register_cdc_open_data_tools
-from tools.healthcare_gov import register_healthcare_gov_tools
+from tools.healthcare_gov_fixed import register_healthcare_gov_tools
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

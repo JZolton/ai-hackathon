@@ -87,8 +87,8 @@ async def get_schema_details(
 
 async def get_schema_items(
     schema_id: str = Field(description="Schema ID (e.g., 'dataset')"),
-    limit: Optional[int] = Field(default=None, description="Maximum number of items to return"),
-    offset: Optional[int] = Field(default=None, description="Number of items to skip")
+    limit: Optional[int] = None,
+    offset: Optional[int] = None
 ) -> Dict[str, Any]:
     """Get all items for a specific schema (e.g., all datasets)"""
     
@@ -158,10 +158,10 @@ async def get_dataset(
 
 
 async def search_catalog(
-    query: Optional[str] = Field(default=None, description="Search query text"),
-    facets: Optional[List[str]] = Field(default=None, description="Facets to filter by"),
-    limit: int = Field(default=20, description="Maximum number of results to return"),
-    offset: int = Field(default=0, description="Number of results to skip")
+    query: Optional[str] = None,
+    facets: Optional[List[str]] = None,
+    limit: int = 20,
+    offset: int = 0
 ) -> Dict[str, Any]:
     """Search the healthcare data catalog"""
     
@@ -238,13 +238,13 @@ async def get_search_facets() -> Dict[str, Any]:
 
 
 async def query_datastore(
-    distribution_id: Optional[str] = Field(default=None, description="Distribution ID to query"),
-    dataset_id: Optional[str] = Field(default=None, description="Dataset ID to query"),
-    index: Optional[int] = Field(default=None, description="Dataset index (used with dataset_id)"),
-    conditions: Optional[Dict[str, Any]] = Field(default=None, description="Query conditions as key-value pairs"),
-    limit: int = Field(default=100, description="Maximum number of records to return"),
-    offset: int = Field(default=0, description="Number of records to skip"),
-    format: str = Field(default="json", description="Response format")
+    distribution_id: Optional[str] = None,
+    dataset_id: Optional[str] = None,
+    index: Optional[int] = None,
+    conditions: Optional[Dict[str, Any]] = None,
+    limit: int = 100,
+    offset: int = 0,
+    format: str = "json"
 ) -> Dict[str, Any]:
     """Query datastore resources with flexible parameters"""
     
@@ -264,7 +264,7 @@ async def query_datastore(
     }
     
     # Add conditions if provided
-    if conditions:
+    if conditions and isinstance(conditions, dict):
         for key, value in conditions.items():
             query_params[key] = value
     
@@ -308,7 +308,7 @@ async def query_datastore(
 
 async def sql_query_datastore(
     query: str = Field(description="SQL query to execute"),
-    limit: int = Field(default=100, description="Maximum number of records to return")
+    limit: int = 100
 ) -> Dict[str, Any]:
     """Execute SQL query against the datastore"""
     
