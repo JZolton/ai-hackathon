@@ -11,17 +11,13 @@ logger = logging.getLogger(__name__)
 
 # CDC API endpoints
 ENDPOINTS = {
-    "open_data": "https://data.cdc.gov",
-    "phin_vads": "http://phinvads.cdc.gov/vocabService/v2",
-    "wonder": "https://wonder.cdc.gov/controller/datarequest",
-    "content_syndication": "https://tools.cdc.gov/api/v2",
-    "tracking_network": "https://ephtracking.cdc.gov/apigateway/api/v1"
+    "open_data": "https://data.cdc.gov"
 }
 
 # Common dataset identifiers for Open Data API
 COMMON_DATASETS = {
-    "covid_cases": "9mfq-cb36",
-    "covid_deaths": "r8kw-7aab", 
+    "nndss_weekly": "x9gk-5huc",
+    "covid_deaths_provisional": "9bhg-hcku",
     "flu_surveillance": "pk7k-8jbr",
     "chronic_disease": "g4ie-h725",
     "behavioral_risk": "dttw-5yxu",
@@ -32,17 +28,6 @@ COMMON_DATASETS = {
     "heart_disease": "6x7h-usvx"
 }
 
-# Content syndication topic IDs
-SYNDICATION_TOPICS = {
-    "diseases_conditions": 1,
-    "emergency_preparedness": 2,
-    "environmental_health": 3,
-    "healthy_living": 4,
-    "injury_violence": 5,
-    "life_stages": 6,
-    "workplace_safety": 7,
-    "travelers_health": 8
-}
 
 
 
@@ -134,220 +119,6 @@ async def get_common_datasets() -> Dict[str, Any]:
     }
 
 
-async def search_vocabularies(
-    search_term: str = Field(description="Term to search for in vocabularies"),
-    vocabulary_oid: Optional[str] = Field(default=None, description="Specific vocabulary OID to search within"),
-    max_results: int = Field(default=50, description="Maximum number of results to return")
-) -> Dict[str, Any]:
-    """Search PHIN VADS vocabulary service for standard terms"""
-    
-    url = f"{ENDPOINTS['phin_vads']}/vocabulary"
-    params = {
-        "searchText": search_term,
-        "maxResults": max_results
-    }
-    
-    if vocabulary_oid:
-        params["vocabularyOid"] = vocabulary_oid
-    
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                if response.status == 200:
-                    xml_data = await response.text()
-                    try:
-                        root = ET.fromstring(xml_data)
-                        vocabularies = []
-                        
-                        for vocab in root.findall('.//vocabulary'):
-                            vocab_info = {
-                                "name": vocab.findtext('name', ''),
-                                "oid": vocab.findtext('oid', ''),
-                                "description": vocab.findtext('description', ''),
-                                "version": vocab.findtext('version', ''),
-                                "status": vocab.findtext('status', '')
-                            }
-                            
-                            # Extract concepts if available
-                            concepts = []
-                            for concept in vocab.findall('.//concept'):
-                                concept_info = {
-                                    "code": concept.findtext('code', ''),
-                                    "display_name": concept.findtext('displayName', ''),
-                                    "definition": concept.findtext('definition', '')
-                                }
-                                concepts.append(concept_info)
-                            
-                            if concepts:
-                                vocab_info["concepts"] = concepts
-                            
-                            vocabularies.append(vocab_info)
-                        
-                        return {
-                            "status": "success",
-                            "vocabularies": vocabularies,
-                            "search_term": search_term,
-                            "total_found": len(vocabularies)
-                        }
-                    
-                    except ET.ParseError as e:
-                        return {
-                            "status": "error",
-                            "error": f"Failed to parse XML response: {str(e)}",
-                            "raw_response": xml_data[:500]
-                        }
-                else:
-                    return {
-                        "status": "error",
-                        "error": f"API request failed with status {response.status}"
-                    }
-        except Exception as e:
-            return {
-                "status": "error",
-                "error": f"Request failed: {str(e)}"
-            }
-
-
-async def get_syndicated_content(
-    topic_id: Optional[int] = Field(default=None, description="Topic ID (1-8, see get_syndication_topics)"),
-    media_type: str = Field(default="Html", description="Media type: Html, Json, Xml"),
-    max_items: int = Field(default=20, description="Maximum number of items to return"),
-    sort: str = Field(default="date", description="Sort by: date, title, or relevance")
-) -> Dict[str, Any]:
-    """Get syndicated content from CDC Content Syndication API"""
-    
-    url = f"{ENDPOINTS['content_syndication']}/resources/media"
-    params = {
-        "mediatype": media_type,
-        "max": max_items,
-        "sort": sort
-    }
-    
-    if topic_id:
-        params["topicid"] = topic_id
-    
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                if response.status == 200:
-                    if media_type.lower() == "json":
-                        data = await response.json()
-                    else:
-                        data = await response.text()
-                    
-                    return {
-                        "status": "success",
-                        "content": data,
-                        "query_info": {
-                            "topic_id": topic_id,
-                            "media_type": media_type,
-                            "max_items": max_items,
-                            "sort": sort
-                        }
-                    }
-                else:
-                    return {
-                        "status": "error",
-                        "error": f"API request failed with status {response.status}"
-                    }
-        except Exception as e:
-            return {
-                "status": "error",
-                "error": f"Request failed: {str(e)}"
-            }
-
-
-async def get_syndication_topics() -> Dict[str, Any]:
-    """Get available content syndication topics"""
-    return {
-        "status": "success",
-        "topics": [
-            {
-                "id": topic_id,
-                "name": name.replace("_", " ").title()
-            }
-            for name, topic_id in SYNDICATION_TOPICS.items()
-        ],
-        "note": "Use these topic IDs with get_syndicated_content"
-    }
-
-
-async def query_tracking_network(
-    measure_id: str = Field(description="Measure ID (e.g., '296' for air quality)"),
-    temporal_type: str = Field(default="annual", description="Temporal type: annual, monthly, daily"),
-    geographic_type: str = Field(default="state", description="Geographic type: state, county, city"),
-    year_filter: Optional[str] = Field(default=None, description="Year or year range (e.g., '2020' or '2018-2020')"),
-    state_filter: Optional[str] = Field(default=None, description="State FIPS code or abbreviation")
-) -> Dict[str, Any]:
-    """Query CDC Environmental Public Health Tracking Network API"""
-    
-    url = f"{ENDPOINTS['tracking_network']}/getCoreHolder"
-    params = {
-        "measureId": measure_id,
-        "temporalTypeId": temporal_type,
-        "geographicTypeId": geographic_type
-    }
-    
-    if year_filter:
-        params["yearFilter"] = year_filter
-    if state_filter:
-        params["stateFilter"] = state_filter
-    
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return {
-                        "status": "success",
-                        "data": data,
-                        "query_info": {
-                            "measure_id": measure_id,
-                            "temporal_type": temporal_type,
-                            "geographic_type": geographic_type,
-                            "year_filter": year_filter,
-                            "state_filter": state_filter
-                        }
-                    }
-                else:
-                    error_text = await response.text()
-                    return {
-                        "status": "error",
-                        "error": f"API request failed with status {response.status}",
-                        "details": error_text[:500]
-                    }
-        except Exception as e:
-            return {
-                "status": "error",
-                "error": f"Request failed: {str(e)}"
-            }
-
-
-async def get_tracking_measures() -> Dict[str, Any]:
-    """Get available measures from CDC Environmental Public Health Tracking Network"""
-    
-    url = f"{ENDPOINTS['tracking_network']}/getMeasures"
-    
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return {
-                        "status": "success",
-                        "measures": data,
-                        "note": "Use measure IDs with query_tracking_network"
-                    }
-                else:
-                    return {
-                        "status": "error",
-                        "error": f"API request failed with status {response.status}"
-                    }
-        except Exception as e:
-            return {
-                "status": "error",
-                "error": f"Request failed: {str(e)}"
-            }
 
 
 async def search_covid_data(
@@ -412,7 +183,7 @@ async def search_covid_data(
 
 
 async def test_api_endpoints() -> Dict[str, Any]:
-    """Test connectivity to all CDC API endpoints"""
+    """Test connectivity to CDC Open Data API"""
     
     results = {}
     
@@ -431,51 +202,6 @@ async def test_api_endpoints() -> Dict[str, Any]:
                 "error": str(e),
                 "endpoint": ENDPOINTS['open_data']
             }
-        
-        # Test Content Syndication API
-        try:
-            async with session.get(f"{ENDPOINTS['content_syndication']}/resources/media?max=1", timeout=aiohttp.ClientTimeout(total=10)) as response:
-                results["content_syndication"] = {
-                    "status": "success" if response.status == 200 else "error",
-                    "status_code": response.status,
-                    "endpoint": ENDPOINTS['content_syndication']
-                }
-        except Exception as e:
-            results["content_syndication"] = {
-                "status": "error",
-                "error": str(e),
-                "endpoint": ENDPOINTS['content_syndication']
-            }
-        
-        # Test Tracking Network API
-        try:
-            async with session.get(f"{ENDPOINTS['tracking_network']}/getMeasures", timeout=aiohttp.ClientTimeout(total=10)) as response:
-                results["tracking_network"] = {
-                    "status": "success" if response.status == 200 else "error",
-                    "status_code": response.status,
-                    "endpoint": ENDPOINTS['tracking_network']
-                }
-        except Exception as e:
-            results["tracking_network"] = {
-                "status": "error",
-                "error": str(e),
-                "endpoint": ENDPOINTS['tracking_network']
-            }
-        
-        # Test PHIN VADS (may be slower)
-        try:
-            async with session.get(f"{ENDPOINTS['phin_vads']}/vocabulary?searchText=test&maxResults=1", timeout=aiohttp.ClientTimeout(total=15)) as response:
-                results["phin_vads"] = {
-                    "status": "success" if response.status == 200 else "error",
-                    "status_code": response.status,
-                    "endpoint": ENDPOINTS['phin_vads']
-                }
-        except Exception as e:
-            results["phin_vads"] = {
-                "status": "error",
-                "error": str(e),
-                "endpoint": ENDPOINTS['phin_vads']
-            }
     
     # Summary
     working_apis = sum(1 for result in results.values() if result["status"] == "success")
@@ -484,12 +210,12 @@ async def test_api_endpoints() -> Dict[str, Any]:
     return {
         "summary": f"{working_apis}/{total_apis} APIs responding",
         "results": results,
-        "timestamp": "2025-06-02T18:19:00Z"
+        "timestamp": "2025-06-03T15:15:00Z"
     }
 
 
 async def get_api_documentation() -> Dict[str, Any]:
-    """Get documentation links and information for all CDC APIs"""
+    """Get documentation links and information for CDC Open Data API"""
     return {
         "apis": [
             {
@@ -498,38 +224,6 @@ async def get_api_documentation() -> Dict[str, Any]:
                 "documentation": "https://dev.socrata.com/docs/endpoints.html",
                 "description": "Repository of all available CDC datasets with Socrata Open Data API",
                 "formats": ["json", "xml", "csv"],
-                "architecture": "REST"
-            },
-            {
-                "name": "PHIN VADS",
-                "endpoint": ENDPOINTS['phin_vads'],
-                "documentation": "http://phinvads.cdc.gov/vads/developersGuide.action",
-                "description": "Standard vocabularies for CDC and public health partners",
-                "formats": ["xml"],
-                "architecture": "REST"
-            },
-            {
-                "name": "WONDER",
-                "endpoint": ENDPOINTS['wonder'],
-                "documentation": "https://wonder.cdc.gov/wonder/help/WONDER-API.html",
-                "description": "Access WONDER online databases with automated data queries",
-                "formats": ["xml"],
-                "architecture": "REST"
-            },
-            {
-                "name": "Content Syndication",
-                "endpoint": ENDPOINTS['content_syndication'],
-                "documentation": "https://tools.cdc.gov/api/docs/info.aspx#response",
-                "description": "CDC web content syndication for other sites and applications",
-                "formats": ["json", "xml"],
-                "architecture": "REST"
-            },
-            {
-                "name": "Environmental Public Health Tracking Network",
-                "endpoint": ENDPOINTS['tracking_network'],
-                "documentation": "https://ephtracking.cdc.gov/apihelp",
-                "description": "Query environmental public health tracking data",
-                "formats": ["json"],
                 "architecture": "REST"
             }
         ],
@@ -542,14 +236,9 @@ async def get_api_documentation() -> Dict[str, Any]:
 
 
 def register_cdc_open_data_tools(mcp: FastMCP) -> None:
-    """Register all CDC Open Data tools with the MCP server."""
+    """Register CDC Open Data tools with the MCP server."""
     mcp.tool()(search_open_data)
     mcp.tool()(get_common_datasets)
-    mcp.tool()(search_vocabularies)
-    mcp.tool()(get_syndicated_content)
-    mcp.tool()(get_syndication_topics)
-    mcp.tool()(query_tracking_network)
-    mcp.tool()(get_tracking_measures)
     mcp.tool()(search_covid_data)
     mcp.tool()(test_api_endpoints)
     mcp.tool()(get_api_documentation)

@@ -174,7 +174,11 @@ async def search_catalog(
     if query:
         params["query"] = query
     if facets:
-        params["facets"] = ",".join(facets)
+        # Ensure facets is a list before joining
+        if isinstance(facets, list):
+            params["facets"] = ",".join(facets)
+        else:
+            params["facets"] = str(facets)
     
     async with aiohttp.ClientSession() as session:
         try:
@@ -388,10 +392,48 @@ async def search_healthcare_topics(
     }
     
     search_terms = topic_keywords.get(topic.lower(), [topic])
+    # Ensure search_terms is always a list
+    if not isinstance(search_terms, list):
+        search_terms = [str(search_terms)]
+    
     query = " OR ".join(search_terms)
     
-    # Use the search_catalog function
-    return await search_catalog(query=query, limit=10)
+    # Call search_catalog directly with explicit parameters
+    url = f"{BASE_URL}/search"
+    params = {
+        "query": query,
+        "limit": 10,
+        "offset": 0
+    }
+    
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return {
+                        "status": "success",
+                        "results": data,
+                        "query_info": {
+                            "topic": topic,
+                            "search_terms": search_terms,
+                            "query": query,
+                            "limit": 10,
+                            "offset": 0
+                        }
+                    }
+                else:
+                    error_text = await response.text()
+                    return {
+                        "status": "error",
+                        "error": f"API request failed with status {response.status}",
+                        "details": error_text[:500]
+                    }
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": f"Request failed: {str(e)}"
+            }
 
 
 async def get_healthcare_categories() -> Dict[str, Any]:
