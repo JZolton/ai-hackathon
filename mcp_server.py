@@ -9,6 +9,8 @@ from tools.cdc_wonder import register_cdc_wonder_tools
 from tools.cdc_epht import register_cdc_epht_tools
 from tools.cdc_open_data import register_cdc_open_data_tools
 from tools.healthcare_gov_fixed import register_healthcare_gov_tools
+from tools.medlineplus_connect import register_medlineplus_tools
+from tools.openfda_api import register_openfda_tools
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -19,7 +21,7 @@ MCP_APP_HOST = os.getenv("MCP_APP_HOST", "0.0.0.0")
 MCP_APP_PORT = int(os.getenv("MCP_APP_PORT", "8888"))
 
 # Initialize MCP server
-mcp = FastMCP("CDC Health Data Server", host=MCP_APP_HOST, port=MCP_APP_PORT)
+mcp = FastMCP("Comprehensive Health Data Server", host=MCP_APP_HOST, port=MCP_APP_PORT)
 
 # Register all tool modules
 def register_all_tools():
@@ -39,6 +41,12 @@ def register_all_tools():
     #good data
     register_healthcare_gov_tools(mcp)
     
+    logger.info("Registering MedlinePlus Connect tools...")
+    register_medlineplus_tools(mcp)
+    
+    logger.info("Registering OpenFDA API tools...")
+    register_openfda_tools(mcp)
+    
     logger.info("All tools registered successfully!")
 
 async def main():
@@ -48,7 +56,7 @@ async def main():
         register_all_tools()
         
         # Start the server
-        logger.info(f"Starting CDC Health Data MCP Server on {MCP_APP_HOST}:{MCP_APP_PORT}")
+        logger.info(f"Starting Comprehensive Health Data MCP Server on {MCP_APP_HOST}:{MCP_APP_PORT}")
         await mcp.run_sse_async(
             host=MCP_APP_HOST,
             port=MCP_APP_PORT,
