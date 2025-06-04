@@ -26,16 +26,13 @@
             margin-bottom: 20px;
         }
         .query-form {
-            display: flex;
-            gap: 15px;
             margin-bottom: 20px;
             max-width: 800px;
             margin-left: auto;
             margin-right: auto;
-            align-items: flex-start;
         }
         .query-input {
-            flex: 1;
+            width: 100%;
             padding: 16px 20px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
@@ -46,11 +43,40 @@
             line-height: 1.5;
             transition: border-color 0.2s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+            margin-bottom: 15px;
         }
         .query-input:focus {
             outline: none;
             border-color: #007bff;
             box-shadow: 0 2px 8px rgba(0,123,255,0.15);
+        }
+        .sample-prompts {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .sample-prompt-button {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: left;
+            transition: all 0.2s ease;
+            color: #495057;
+            line-height: 1.4;
+        }
+        .sample-prompt-button:hover {
+            background: #e9ecef;
+            border-color: #007bff;
+            color: #007bff;
+        }
+        .sample-prompt-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
         .submit-button {
             padding: 16px 24px;
@@ -74,8 +100,8 @@
         }
         .agents-container {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
             margin-bottom: 20px;
         }
         .agent-wrapper {
@@ -137,6 +163,9 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             padding: 30px;
             margin-top: 20px;
+            max-width: 70%;
+            margin-left: auto;
+            margin-right: auto;
         }
         .final-report h1, .final-report h2, .final-report h3 {
             color: #333;
@@ -182,6 +211,31 @@
             color: #666;
             font-size: 18px;
         }
+        .coordinator-messages {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .agent-loading-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #666;
+        }
+        .small-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -193,8 +247,16 @@
         function HealthDataDashboard() {
             const [query, setQuery] = useState('');
             const [isProcessing, setIsProcessing] = useState(false);
+            
+            const exampleQueries = [
+                "What are the most serious FDA drug safety concerns in the past year, and how do these safety profiles correlate with healthcare marketplace coverage and patient education resources?",
+                "Which counties have the highest rates of uninsured residents, and how do COVID-19 health outcomes in those areas compare to areas with better insurance coverage?",
+                "Which essential medications have had recent FDA safety warnings or recalls, and how does this impact patient access through different insurance plans and patient education needs?",
+                "What are the current disease surveillance trends for emerging infectious diseases, and how prepared are our healthcare systems in terms of provider networks and emergency response capabilities?"
+            ];
             const [agents, setAgents] = useState({
-                EPHT_Agent: [],
+                MedlinePlus_Agent: [],
+                OpenFDA_Agent: [],
                 OpenData_Agent: [],
                 Healthcare_Agent: []
             });
@@ -202,6 +264,12 @@
             const [finalReport, setFinalReport] = useState('');
             const [isSynthesizing, setIsSynthesizing] = useState(false);
             const [userHasScrolled, setUserHasScrolled] = useState(false);
+            const [agentStatus, setAgentStatus] = useState({
+                MedlinePlus_Agent: 'waiting',
+                OpenFDA_Agent: 'waiting', 
+                OpenData_Agent: 'waiting',
+                Healthcare_Agent: 'waiting'
+            });
             const eventSourceRef = useRef(null);
             
             // Refs for auto-scrolling
@@ -209,6 +277,7 @@
             const openDataRef = useRef(null);
             const healthcareRef = useRef(null);
             const finalReportRef = useRef(null);
+            const coordinatorRef = useRef(null);
             
             // Auto-scroll effect for agent columns
             useEffect(() => {
@@ -228,6 +297,13 @@
                     healthcareRef.current.scrollTop = healthcareRef.current.scrollHeight;
                 }
             }, [agents.Healthcare_Agent]);
+            
+            // Auto-scroll coordinator messages
+            useEffect(() => {
+                if (coordinatorRef.current) {
+                    coordinatorRef.current.scrollTop = coordinatorRef.current.scrollHeight;
+                }
+            }, [coordinatorMessages]);
             
             // Auto-scroll entire page to bottom (except when final report appears)
             useEffect(() => {
@@ -265,7 +341,8 @@
                 // Reset state
                 setIsProcessing(true);
                 setAgents({
-                    EPHT_Agent: [],
+                    MedlinePlus_Agent: [],
+                    OpenFDA_Agent: [],
                     OpenData_Agent: [],
                     Healthcare_Agent: []
                 });
@@ -379,13 +456,28 @@
                                 disabled={isProcessing}
                                 rows={3}
                             />
+                            
+                            <div className="sample-prompts">
+                                {exampleQueries.map((exampleQuery, index) => (
+                                    <button
+                                        key={index}
+                                        type="button"
+                                        className="sample-prompt-button"
+                                        onClick={() => setQuery(exampleQuery)}
+                                        disabled={isProcessing}
+                                    >
+                                        {exampleQuery}
+                                    </button>
+                                ))}
+                            </div>
+                            
                             <button type="submit" className="submit-button" disabled={isProcessing}>
                                 {isProcessing ? 'Processing...' : 'Research'}
                             </button>
                         </form>
                         
                         {coordinatorMessages.length > 0 && (
-                            <div>
+                            <div className="coordinator-messages" ref={coordinatorRef}>
                                 {coordinatorMessages.map((msg, i) => renderMessage(msg, i))}
                             </div>
                         )}
@@ -394,12 +486,28 @@
                     {(Object.values(agents).some(msgs => msgs.length > 0) || isProcessing) && (
                         <div className="agents-container">
                             <div className="agent-wrapper">
-                                <div className="agent-header">🌍 Environmental Health (EPHT)</div>
+                                <div className="agent-header">📚 MedlinePlus</div>
                                 <div className="agent-column" ref={ephtRef}>
-                                    {agents.EPHT_Agent.length === 0 && isProcessing && (
-                                        <div className="loading">Waiting for agent...</div>
+                                    {agents.MedlinePlus_Agent.length === 0 && isProcessing && (
+                                        <div className="agent-loading-spinner">
+                                            <div className="small-spinner"></div>
+                                            Waiting for agent...
+                                        </div>
                                     )}
-                                    {agents.EPHT_Agent.map((msg, i) => renderMessage(msg, i))}
+                                    {agents.MedlinePlus_Agent.map((msg, i) => renderMessage(msg, i))}
+                                </div>
+                            </div>
+                            
+                            <div className="agent-wrapper">
+                                <div className="agent-header">⚠️ OpenFDA</div>
+                                <div className="agent-column" ref={openDataRef}>
+                                    {agents.OpenFDA_Agent.length === 0 && isProcessing && (
+                                        <div className="agent-loading-spinner">
+                                            <div className="small-spinner"></div>
+                                            Waiting for agent...
+                                        </div>
+                                    )}
+                                    {agents.OpenFDA_Agent.map((msg, i) => renderMessage(msg, i))}
                                 </div>
                             </div>
                             
@@ -407,7 +515,10 @@
                                 <div className="agent-header">📊 CDC Open Data</div>
                                 <div className="agent-column" ref={openDataRef}>
                                     {agents.OpenData_Agent.length === 0 && isProcessing && (
-                                        <div className="loading">Waiting for agent...</div>
+                                        <div className="agent-loading-spinner">
+                                            <div className="small-spinner"></div>
+                                            Waiting for agent...
+                                        </div>
                                     )}
                                     {agents.OpenData_Agent.map((msg, i) => renderMessage(msg, i))}
                                 </div>
@@ -417,7 +528,10 @@
                                 <div className="agent-header">🏥 Healthcare Access</div>
                                 <div className="agent-column" ref={healthcareRef}>
                                     {agents.Healthcare_Agent.length === 0 && isProcessing && (
-                                        <div className="loading">Waiting for agent...</div>
+                                        <div className="agent-loading-spinner">
+                                            <div className="small-spinner"></div>
+                                            Waiting for agent...
+                                        </div>
                                     )}
                                     {agents.Healthcare_Agent.map((msg, i) => renderMessage(msg, i))}
                                 </div>
