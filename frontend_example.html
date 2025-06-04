@@ -8,10 +8,197 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        .loading-spinner {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #3b82f6;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .query-form {
+            margin-bottom: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .query-input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            min-height: 80px;
+            resize: vertical;
+            font-family: inherit;
+            line-height: 1.5;
+            transition: border-color 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+        .query-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 2px 8px rgba(0,123,255,0.15);
+        }
+        .sample-prompts {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .sample-prompt-button {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: left;
+            transition: all 0.2s ease;
+            color: #495057;
+            line-height: 1.4;
+        }
+        .sample-prompt-button:hover {
+            background: #e9ecef;
+            border-color: #007bff;
+            color: #007bff;
+        }
+        .sample-prompt-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .submit-button {
+            padding: 16px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,123,255,0.2);
+        }
+        .submit-button:hover {
+            background: #0056b3;
+        }
+        .submit-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .agents-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .agent-wrapper {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .agent-header {
+            font-size: 18px;
+            font-weight: bold;
+            padding: 20px 20px 15px 20px;
+            border-bottom: 2px solid #f0f0f0;
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        .agent-column {
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .agent-message {
+            background: #f0f8ff;
+            border-left: 3px solid #007bff;
+        }
+        .tool-call {
+            background: #fff3cd;
+            border-left: 3px solid #ffc107;
+            font-family: monospace;
+        }
+        .tool-response {
+            background: #d4edda;
+            border-left: 3px solid #28a745;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .phase-update {
+            background: #e9ecef;
+            border-left: 3px solid #6c757d;
+            font-style: italic;
+        }
+        .error {
+            background: #f8d7da;
+            border-left: 3px solid #dc3545;
+        }
+        .final-report {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-top: 20px;
+            max-width: 70%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .final-report h1, .final-report h2, .final-report h3 {
+            color: #333;
+        }
+        .final-report pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .timestamp {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+        .synthesis-loading {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 40px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
             border-radius: 50%;
             width: 20px;
             height: 20px;
@@ -45,6 +232,31 @@
         .scroll-container::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+        .coordinator-messages {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .agent-loading-spinner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #666;
+        }
+        .small-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -55,114 +267,122 @@
 
         function HealthGuardApp() {
             const [query, setQuery] = useState('');
-            const [isResearching, setIsResearching] = useState(false);
-            const [agentResults, setAgentResults] = useState({
-                'EPHT_Agent': [],
-                'OpenData_Agent': [],
-                'HealthcareAccess_Agent': [],
-                'MedlinePlus_Agent': [],     // NEW
-                'OpenFDA_Agent': []          // NEW
-            });
-            const [selectedAgents, setSelectedAgents] = useState([]);
-            const [synthesis, setSynthesis] = useState('');
-            const [coordinatorMessages, setCoordinatorMessages] = useState([]);
+            const [isProcessing, setIsProcessing] = useState(false);
             
-            const scrollRefs = {
-                'EPHT_Agent': useRef(null),
-                'OpenData_Agent': useRef(null),
-                'HealthcareAccess_Agent': useRef(null),
-                'MedlinePlus_Agent': useRef(null),     // NEW
-                'OpenFDA_Agent': useRef(null)          // NEW
-            };
-
-            const agentConfigs = {
-                'EPHT_Agent': {
-                    name: 'Environmental Health',
-                    icon: '🌍',
-                    color: 'green',
-                    bgColor: 'bg-green-50',
-                    borderColor: 'border-green-200',
-                    textColor: 'text-green-800'
-                },
-                'OpenData_Agent': {
-                    name: 'CDC Surveillance',
-                    icon: '📊',
-                    color: 'blue',
-                    bgColor: 'bg-blue-50',
-                    borderColor: 'border-blue-200',
-                    textColor: 'text-blue-800'
-                },
-                'HealthcareAccess_Agent': {
-                    name: 'Healthcare Access',
-                    icon: '🏥',
-                    color: 'purple',
-                    bgColor: 'bg-purple-50',
-                    borderColor: 'border-purple-200',
-                    textColor: 'text-purple-800'
-                },
-                'MedlinePlus_Agent': {
-                    name: 'Patient Education',
-                    icon: '🩺',
-                    color: 'teal',
-                    bgColor: 'bg-teal-50',
-                    borderColor: 'border-teal-200',
-                    textColor: 'text-teal-800'
-                },
-                'OpenFDA_Agent': {
-                    name: 'Drug Safety',
-                    icon: '⚠️',
-                    color: 'red',
-                    bgColor: 'bg-red-50',
-                    borderColor: 'border-red-200',
-                    textColor: 'text-red-800'
+            const exampleQueries = [
+                "What are the most serious FDA drug safety concerns in the past year, and how do these safety profiles correlate with healthcare marketplace coverage and patient education resources?",
+                "Which counties have the highest rates of uninsured residents, and how do COVID-19 health outcomes in those areas compare to areas with better insurance coverage?",
+                "Which essential medications have had recent FDA safety warnings or recalls, and how does this impact patient access through different insurance plans and patient education needs?",
+                "What are the current disease surveillance trends for emerging infectious diseases, and how prepared are our healthcare systems in terms of provider networks and emergency response capabilities?"
+            ];
+            const [agents, setAgents] = useState({
+                MedlinePlus_Agent: [],
+                OpenFDA_Agent: [],
+                OpenData_Agent: [],
+                Healthcare_Agent: []
+            });
+            const [coordinatorMessages, setCoordinatorMessages] = useState([]);
+            const [finalReport, setFinalReport] = useState('');
+            const [isSynthesizing, setIsSynthesizing] = useState(false);
+            const [userHasScrolled, setUserHasScrolled] = useState(false);
+            const [agentStatus, setAgentStatus] = useState({
+                MedlinePlus_Agent: 'waiting',
+                OpenFDA_Agent: 'waiting', 
+                OpenData_Agent: 'waiting',
+                Healthcare_Agent: 'waiting'
+            });
+            const eventSourceRef = useRef(null);
+            
+            // Refs for auto-scrolling
+            const ephtRef = useRef(null);
+            const openDataRef = useRef(null);
+            const healthcareRef = useRef(null);
+            const finalReportRef = useRef(null);
+            const coordinatorRef = useRef(null);
+            
+            // Auto-scroll effect for agent columns
+            useEffect(() => {
+                if (ephtRef.current) {
+                    ephtRef.current.scrollTop = ephtRef.current.scrollHeight;
                 }
-            };
-
-            const scrollToBottom = (agentName) => {
-                const ref = scrollRefs[agentName];
-                if (ref.current) {
-                    ref.current.scrollTop = ref.current.scrollHeight;
+            }, [agents.EPHT_Agent]);
+            
+            useEffect(() => {
+                if (openDataRef.current) {
+                    openDataRef.current.scrollTop = openDataRef.current.scrollHeight;
                 }
-            };
+            }, [agents.OpenData_Agent]);
+            
+            useEffect(() => {
+                if (healthcareRef.current) {
+                    healthcareRef.current.scrollTop = healthcareRef.current.scrollHeight;
+                }
+            }, [agents.Healthcare_Agent]);
+            
+            // Auto-scroll coordinator messages
+            useEffect(() => {
+                if (coordinatorRef.current) {
+                    coordinatorRef.current.scrollTop = coordinatorRef.current.scrollHeight;
+                }
+            }, [coordinatorMessages]);
+            
+            // Auto-scroll entire page to bottom (except when final report appears)
+            useEffect(() => {
+                if (!userHasScrolled && isProcessing && !finalReport) {
+                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                }
+            }, [agents, coordinatorMessages, isSynthesizing, userHasScrolled, isProcessing, finalReport]);
+            
+            // Scroll to top of final report when it appears
+            useEffect(() => {
+                if (finalReport && finalReportRef.current) {
+                    finalReportRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, [finalReport]);
+            
+            // Detect user scroll
+            useEffect(() => {
+                const handleScroll = () => {
+                    const isAtBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+                    if (!isAtBottom && isProcessing) {
+                        setUserHasScrolled(true);
+                    } else if (isAtBottom) {
+                        setUserHasScrolled(false);
+                    }
+                };
+                
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, [isProcessing]);
 
-            const addAgentMessage = (agentName, message, type = 'info') => {
-                setAgentResults(prev => ({
-                    ...prev,
-                    [agentName]: [...prev[agentName], { message, type, timestamp: Date.now() }]
-                }));
-                setTimeout(() => scrollToBottom(agentName), 100);
-            };
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!query.trim() || isProcessing) return;
 
-            const clearAllResults = () => {
-                setAgentResults({
-                    'EPHT_Agent': [],
-                    'OpenData_Agent': [],
-                    'HealthcareAccess_Agent': [],
-                    'MedlinePlus_Agent': [],
-                    'OpenFDA_Agent': []
+                // Reset state
+                setIsProcessing(true);
+                setAgents({
+                    MedlinePlus_Agent: [],
+                    OpenFDA_Agent: [],
+                    OpenData_Agent: [],
+                    Healthcare_Agent: []
                 });
-                setSynthesis('');
                 setCoordinatorMessages([]);
-                setSelectedAgents([]);
-            };
+                setFinalReport('');
+                setIsSynthesizing(false);
+                setUserHasScrolled(false);
 
-            const handleResearch = async () => {
-                if (!query.trim()) return;
-                
-                setIsResearching(true);
-                clearAllResults();
-                
                 try {
                     const response = await fetch('http://localhost:8000/chat', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ message: query })
+                        body: JSON.stringify({ query: query })
                     });
 
-                    if (!response.body) {
-                        throw new Error('No response body');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
 
                     const reader = response.body.getReader();
@@ -178,234 +398,247 @@
                         for (const line of lines) {
                             if (line.startsWith('data: ')) {
                                 try {
-                                    const data = JSON.parse(line.slice(6));
+                                    const eventData = JSON.parse(line.slice(6));
                                     
-                                    switch (data.type) {
-                                        case 'agent_selection':
-                                            setSelectedAgents(data.agents);
-                                            setCoordinatorMessages(prev => [...prev, 
-                                                `🎯 Selected ${data.agents.length} relevant agents: ${data.agents.join(', ')}`
-                                            ]);
+                                    switch (eventData.type) {
+                                        case 'agent_message':
+                                            setAgents(prev => ({
+                                                ...prev,
+                                                [eventData.agent]: [...prev[eventData.agent], {
+                                                    type: 'agent_message',
+                                                    content: eventData.content,
+                                                    timestamp: eventData.timestamp
+                                                }]
+                                            }));
                                             break;
                                             
-                                        case 'coordinator':
-                                            setCoordinatorMessages(prev => [...prev, `🤖 ${data.content}`]);
+                                        case 'tool_call':
+                                            setAgents(prev => ({
+                                                ...prev,
+                                                [eventData.agent]: [...prev[eventData.agent], {
+                                                    type: 'tool_call',
+                                                    content: eventData.content,
+                                                    timestamp: eventData.timestamp
+                                                }]
+                                            }));
                                             break;
                                             
-                                        case 'research':
-                                            if (data.agent && data.content) {
-                                                addAgentMessage(data.agent, data.content, 'research');
+                                        case 'tool_response':
+                                            setAgents(prev => ({
+                                                ...prev,
+                                                [eventData.agent]: [...prev[eventData.agent], {
+                                                    type: 'tool_response',
+                                                    content: eventData.content,
+                                                    timestamp: eventData.timestamp
+                                                }]
+                                            }));
+                                            break;
+                                            
+                                        case 'phase_update':
+                                            if (eventData.agent === 'coordinator') {
+                                                setCoordinatorMessages(prev => [...prev, {
+                                                    type: 'phase_update',
+                                                    content: eventData.content,
+                                                    timestamp: eventData.timestamp
+                                                }]);
+                                                
+                                                if (eventData.content.includes('Synthesizing')) {
+                                                    setIsSynthesizing(true);
+                                                }
+                                            } else {
+                                                setAgents(prev => ({
+                                                    ...prev,
+                                                    [eventData.agent]: [...prev[eventData.agent], {
+                                                        type: 'phase_update',
+                                                        content: eventData.content,
+                                                        timestamp: eventData.timestamp
+                                                    }]
+                                                }));
                                             }
                                             break;
                                             
-                                        case 'agent_complete':
-                                            if (data.agent) {
-                                                addAgentMessage(data.agent, `✅ Research complete`, 'success');
-                                            }
-                                            break;
-                                            
-                                        case 'synthesis':
-                                            setSynthesis(data.content);
-                                            break;
-                                            
-                                        case 'complete':
-                                            setIsResearching(false);
+                                        case 'final_report':
+                                            setFinalReport(eventData.content);
+                                            setIsSynthesizing(false);
+                                            setIsProcessing(false);
                                             break;
                                             
                                         case 'error':
-                                            if (data.agent) {
-                                                addAgentMessage(data.agent, `❌ ${data.content}`, 'error');
+                                            if (eventData.agent === 'system') {
+                                                setCoordinatorMessages(prev => [...prev, {
+                                                    type: 'error',
+                                                    content: eventData.content,
+                                                    timestamp: eventData.timestamp
+                                                }]);
+                                            } else {
+                                                setAgents(prev => ({
+                                                    ...prev,
+                                                    [eventData.agent]: [...prev[eventData.agent], {
+                                                        type: 'error',
+                                                        content: eventData.content,
+                                                        timestamp: eventData.timestamp
+                                                    }]
+                                                }));
                                             }
                                             break;
                                     }
-                                } catch (e) {
-                                    console.warn('Failed to parse SSE data:', line);
+                                } catch (parseError) {
+                                    console.warn('Failed to parse event data:', line);
                                 }
                             }
                         }
                     }
                 } catch (error) {
-                    console.error('Research error:', error);
-                    setCoordinatorMessages(prev => [...prev, `❌ Error: ${error.message}`]);
-                    setIsResearching(false);
+                    console.error('Error:', error);
+                    setCoordinatorMessages(prev => [...prev, {
+                        type: 'error',
+                        content: `Connection error: ${error.message}`,
+                        timestamp: new Date().toISOString()
+                    }]);
+                    setIsProcessing(false);
                 }
             };
 
-            const exampleQueries = [
-                "What are the latest FDA recalls for blood pressure medications and what patient education materials are available?",
-                "Analyze fentanyl-related adverse events and provide patient education resources about opioid safety",
-                "Compare air quality trends with respiratory health outcomes and provide patient guidance",
-                "What are the current drug safety warnings for diabetes medications and related educational resources?"
-            ];
+            const renderMessage = (msg, index) => {
+                let className = 'message ';
+                let content = msg.content;
 
-                                return (
-                <div className="min-h-screen bg-gray-50">
-                    {/* Header */}
-                    <header className="bg-white shadow-sm border-b">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                                        <span className="text-white font-bold text-lg">🏥</span>
-                                    </div>
-                                    <div>
-                                        <h1 className="text-2xl font-bold text-gray-900">HealthGuard AI</h1>
-                                        <p className="text-sm text-gray-600">Public Health Decision Support System</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                                    <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                                    <span>5 Databases Connected</span>
-                                </div>
+                switch (msg.type) {
+                    case 'agent_message':
+                        className += 'agent-message';
+                        break;
+                    case 'tool_call':
+                        className += 'tool-call';
+                        content = `🔧 Tool: ${msg.content.tool}`;
+                        break;
+                    case 'tool_response':
+                        className += 'tool-response';
+                        content = content.substring(0, 500) + (content.length > 500 ? '...' : '');
+                        break;
+                    case 'phase_update':
+                        className += 'phase-update';
+                        break;
+                    case 'error':
+                        className += 'error';
+                        break;
+                }
+
+                return (
+                    <div key={index} className={className}>
+                        <div>{content}</div>
+                        <div className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>Health Data Research Dashboard</h1>
+                        <form onSubmit={handleSubmit} className="query-form">
+                            <textarea
+                                className="query-input"
+                                placeholder="Enter your health data research query..."
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                disabled={isProcessing}
+                                rows={3}
+                            />
+                            
+                            <div className="sample-prompts">
+                                {exampleQueries.map((exampleQuery, index) => (
+                                    <button
+                                        key={index}
+                                        type="button"
+                                        className="sample-prompt-button"
+                                        onClick={() => setQuery(exampleQuery)}
+                                        disabled={isProcessing}
+                                    >
+                                        {exampleQuery}
+                                    </button>
+                                ))}
                             </div>
-                        </div>
-                    </header>
+                            
+                            <button type="submit" className="submit-button" disabled={isProcessing}>
+                                {isProcessing ? 'Processing...' : 'Research'}
+                            </button>
+                        </form>
+                        
+                        {coordinatorMessages.length > 0 && (
+                            <div className="coordinator-messages" ref={coordinatorRef}>
+                                {coordinatorMessages.map((msg, i) => renderMessage(msg, i))}
+                            </div>
+                        )}
+                    </div>
 
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                        {/* Query Input Section */}
-                        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Research Query
-                                    </label>
-                                    <textarea
-                                        value={query}
-                                        onChange={(e) => setQuery(e.target.value)}
-                                        placeholder="Enter your public health research question..."
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        rows={3}
-                                        disabled={isResearching}
-                                    />
-                                </div>
-                                
-                                <div className="flex items-center justify-between">
-                                    <button
-                                        onClick={handleResearch}
-                                        disabled={isResearching || !query.trim()}
-                                        className={`px-6 py-2 rounded-md font-medium flex items-center space-x-2 ${
-                                            isResearching || !query.trim()
-                                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                : 'bg-blue-600 text-white hover:bg-blue-700'
-                                        }`}
-                                    >
-                                        {isResearching && <div className="loading-spinner"></div>}
-                                        <span>{isResearching ? 'Researching...' : 'Start Research'}</span>
-                                    </button>
-                                    
-                                    <button
-                                        onClick={clearAllResults}
-                                        className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
-                                    >
-                                        Clear Results
-                                    </button>
+                    {(Object.values(agents).some(msgs => msgs.length > 0) || isProcessing) && (
+                        <div className="agents-container">
+                            <div className="agent-wrapper">
+                                <div className="agent-header">📚 MedlinePlus</div>
+                                <div className="agent-column" ref={ephtRef}>
+                                    {agents.MedlinePlus_Agent.length === 0 && isProcessing && (
+                                        <div className="agent-loading-spinner">
+                                            <div className="small-spinner"></div>
+                                            Waiting for agent...
+                                        </div>
+                                    )}
+                                    {agents.MedlinePlus_Agent.map((msg, i) => renderMessage(msg, i))}
                                 </div>
                             </div>
                             
-                            {/* Example Queries */}
-                            <div className="mt-4 pt-4 border-t border-gray-200">
-                                <p className="text-sm font-medium text-gray-700 mb-2">Example Queries:</p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {exampleQueries.map((example, index) => (
-                                        <button
-                                            key={index}
-                                            onClick={() => setQuery(example)}
-                                            className="text-left text-sm text-blue-600 hover:text-blue-800 p-2 rounded border border-blue-200 hover:border-blue-300 transition-colors"
-                                            disabled={isResearching}
-                                        >
-                                            {example}
-                                        </button>
-                                    ))}
+                            <div className="agent-wrapper">
+                                <div className="agent-header">⚠️ OpenFDA</div>
+                                <div className="agent-column" ref={openDataRef}>
+                                    {agents.OpenFDA_Agent.length === 0 && isProcessing && (
+                                        <div className="agent-loading-spinner">
+                                            <div className="small-spinner"></div>
+                                            Waiting for agent...
+                                        </div>
+                                    )}
+                                    {agents.OpenFDA_Agent.map((msg, i) => renderMessage(msg, i))}
+                                </div>
+                            </div>
+                            
+                            <div className="agent-wrapper">
+                                <div className="agent-header">📊 CDC Open Data</div>
+                                <div className="agent-column" ref={openDataRef}>
+                                    {agents.OpenData_Agent.length === 0 && isProcessing && (
+                                        <div className="agent-loading-spinner">
+                                            <div className="small-spinner"></div>
+                                            Waiting for agent...
+                                        </div>
+                                    )}
+                                    {agents.OpenData_Agent.map((msg, i) => renderMessage(msg, i))}
+                                </div>
+                            </div>
+                            
+                            <div className="agent-wrapper">
+                                <div className="agent-header">🏥 Healthcare Access</div>
+                                <div className="agent-column" ref={healthcareRef}>
+                                    {agents.Healthcare_Agent.length === 0 && isProcessing && (
+                                        <div className="agent-loading-spinner">
+                                            <div className="small-spinner"></div>
+                                            Waiting for agent...
+                                        </div>
+                                    )}
+                                    {agents.Healthcare_Agent.map((msg, i) => renderMessage(msg, i))}
                                 </div>
                             </div>
                         </div>
+                    )}
 
-                        {/* Coordinator Messages */}
-                        {coordinatorMessages.length > 0 && (
-                            <div className="bg-gray-100 rounded-lg p-4 mb-6">
-                                <h3 className="font-semibold text-gray-800 mb-2">🤖 Research Coordinator</h3>
-                                <div className="space-y-1">
-                                    {coordinatorMessages.map((message, index) => (
-                                        <div key={index} className="text-sm text-gray-700">
-                                            {message}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                    {isSynthesizing && !finalReport && (
+                        <div className="synthesis-loading">
+                            <div className="spinner"></div>
+                            <div className="synthesis-text">Synthesizing results from all agents...</div>
+                        </div>
+                    )}
 
-                        {/* Agent Results Grid - Now supports 5 agents */}
-                        {selectedAgents.length > 0 && (
-                            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
-                                {selectedAgents.map((agentName) => {
-                                    const config = agentConfigs[agentName];
-                                    const results = agentResults[agentName] || [];
-                                    
-                                    return (
-                                        <div key={agentName} className={`${config.bgColor} rounded-lg border ${config.borderColor} p-4`}>
-                                            <h3 className={`font-semibold ${config.textColor} mb-3 flex items-center space-x-2`}>
-                                                <span className="text-lg">{config.icon}</span>
-                                                <span>{config.name}</span>
-                                                {isResearching && results.length === 0 && (
-                                                    <div className="loading-spinner ml-auto"></div>
-                                                )}
-                                            </h3>
-                                            <div 
-                                                ref={scrollRefs[agentName]}
-                                                className="space-y-2 h-96 overflow-y-auto scroll-container"
-                                            >
-                                                {results.length === 0 && !isResearching && (
-                                                    <div className="text-gray-500 text-sm italic">
-                                                        Waiting for research to begin...
-                                                    </div>
-                                                )}
-                                                {results.map((result, index) => (
-                                                    <div 
-                                                        key={index}
-                                                        className={`text-sm p-2 rounded ${
-                                                            result.type === 'error' 
-                                                                ? 'bg-red-100 text-red-800' 
-                                                                : result.type === 'success'
-                                                                ? 'bg-green-100 text-green-800'
-                                                                : 'bg-white text-gray-700'
-                                                        }`}
-                                                    >
-                                                        {result.message}
-                                                    </div>
-                                                ))}
-                                                {isResearching && results.length > 0 && (
-                                                    <div className="flex items-center space-x-2 text-gray-500 text-sm">
-                                                        <div className="loading-spinner"></div>
-                                                        <span>Researching...</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-
-                        {/* Synthesis Results */}
-                        {synthesis && (
-                            <div className="bg-white rounded-lg shadow-sm border p-6">
-                                <div className="flex items-center space-x-2 mb-4">
-                                    <span className="text-2xl">📋</span>
-                                    <h3 className="text-xl font-bold text-gray-900">Comprehensive Analysis Report</h3>
-                                </div>
-                                <div className="prose max-w-none">
-                                    <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                                        {synthesis}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Footer */}
-                        <footer className="mt-8 text-center text-sm text-gray-500">
-                            <p>HealthGuard AI • Powered by CDC, FDA, and MedlinePlus databases • Real-time parallel analysis</p>
-                        </footer>
-                    </div>
+                    {finalReport && (
+                        <div className="final-report" ref={finalReportRef}>
+                            <div dangerouslySetInnerHTML={{ __html: marked.parse(finalReport) }} />
+                        </div>
+                    )}
                 </div>
             );
         }
